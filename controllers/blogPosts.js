@@ -17,13 +17,13 @@ export async function findById(req, res) {
   try {
     const { id } = req.params;
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ message: "Invalid Post Id" });
+      return res.status(400).json({ message: "Invalid Blog Post Id" });
     }
     const blogPost = await BlogPost.findById(id);
     if (!blogPost) {
-      return res.status(404).json({ message: "Post Not Found" });
+      return res.status(404).json({ message: "Blog Post Not Found" });
     }
-    res.status(200).json(blogPost);
+    return res.status(200).json(blogPost);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -34,7 +34,7 @@ export async function findById(req, res) {
 export async function create(req, res) {
   try {
     const { category, title, cover, readTime, author, content } = req.body;
-    const post = new BlogPost({
+    const blogPost = new BlogPost({
       category,
       title,
       cover,
@@ -42,7 +42,7 @@ export async function create(req, res) {
       author,
       content,
     });
-    const newBlogPost = await post.save();
+    const newBlogPost = await blogPost.save();
     res.status(201).json(newBlogPost);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -55,13 +55,13 @@ export async function elimina(req, res) {
   try {
     const { id } = req.params;
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ message: "Invalid Post Id" });
+      return res.status(400).json({ message: "Invalid Blog Post Id" });
     }
     const deletedBlogPost = await BlogPost.findByIdAndDelete(id);
     if (!deletedBlogPost) {
-      return res.status(404).json({ message: "Post Not Found" });
+      return res.status(404).json({ message: " Blog Post Not Found" });
     }
-    res.status(200).json({ message: "Post Deleted" });
+    res.status(200).json({ message: " Blog Post Deleted" });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -73,7 +73,7 @@ export async function update(req, res) {
   try {
     const { id } = req.params;
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ message: "Invalid Post Id" });
+      return res.status(400).json({ message: "Invalid Blog Post Id" });
     }
     const { category, title, cover, readTime, author, content } = req.body;
     const updateBlogPost = await BlogPost.findByIdAndUpdate(
@@ -84,7 +84,7 @@ export async function update(req, res) {
       },
     );
     if (!updateBlogPost) {
-      return res.status(404).json({ message: "Post Not Found" });
+      return res.status(404).json({ message: " Blog Post Not Found" });
     }
     res.status(200).json(updateBlogPost);
   } catch (error) {
