@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import BlogPost from "../models/Blogpost.js";
+import BlogPost from "../models/BlogPost.js";
 
 // 1. LISTA DEI POST
 export async function findAll(req, res) {
