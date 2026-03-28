@@ -3,7 +3,7 @@ import Author from "../models/Author.js";
 
 export async function findAll(req, res) {
   try {
-    const authors = await Author.find();
+    const authors = await Author.find(); //{ avatar: { $eq: "Lost" } }); se voglio filtrare nel database
     res.status(200).json(authors);
   } catch (error) {
     res.status(500).json({ message: error.message });
