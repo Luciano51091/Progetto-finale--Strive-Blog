@@ -92,3 +92,27 @@ export async function update(req, res) {
     res.status(500).json({ message: error.message });
   }
 }
+
+export async function uploadAvatar(req, res) {
+  try {
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        message: "Invalid Author Id",
+      });
+    }
+    if (!req.file) {
+      return res.status(400).json({ message: "Invalid file" });
+    }
+    const author = await Author.findByIdAndUpdate(id, { avatar: req.file.path }, { returnDocument: "after" });
+
+    if (!author) {
+      return res.status(404).json({
+        message: "Author Not Found",
+      });
+    }
+    res.status(200).json(author);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+}
