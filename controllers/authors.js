@@ -36,13 +36,14 @@ export async function findById(req, res) {
 
 export async function create(req, res) {
   try {
-    const { name, surname, email, birthDate, avatar } = req.body;
+    const { name, surname, email, birthDate, avatar, password } = req.body;
     const author = new Author({
       name,
       surname,
       email,
       birthDate,
       avatar,
+      password,
     });
     const newAuthor = await author.save();
     res.status(201).json(newAuthor);
