@@ -5,6 +5,7 @@ import authorRouter from "./routes/authors.js";
 import blogPostRouter from "./routes/blogPosts.js";
 import cors from "cors";
 import commentsRouter from "./routes/comments.js";
+import authRouter from "./routes/auth.js";
 
 dotenv.config();
 connect();
@@ -17,6 +18,7 @@ app.get("/", (req, res) => {
 app.use("/authors", authorRouter);
 app.use("/blogPosts", blogPostRouter);
 app.use("/", commentsRouter);
+app.use("/auth", authRouter);
 app.listen(process.env.PORT, () => {
   console.log("il server è attivo");
 });
