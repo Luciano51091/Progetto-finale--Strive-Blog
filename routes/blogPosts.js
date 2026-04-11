@@ -4,7 +4,7 @@ import parser from "../middleware/cloudinary.js";
 import { authentication } from "../middleware/authentication.js";
 
 const blogPostRouter = express.Router();
-blogPostRouter.get("/", findAll);
+blogPostRouter.get("/", authentication, findAll);
 blogPostRouter.get("/:id", findById);
 blogPostRouter.post("/", authentication, create);
 blogPostRouter.delete("/:id", elimina);

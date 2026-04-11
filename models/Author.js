@@ -13,6 +13,8 @@ const AuthorSchema = new mongoose.Schema({
   password: String,
 });
 
+//middleware di hashing della password
+
 AuthorSchema.pre("save", async function () {
   if (!this.isModified("password")) {
     return;
