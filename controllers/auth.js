@@ -38,3 +38,11 @@ export async function login(req, res) {
     res.status(500).json({ message: error.message });
   }
 }
+
+export const getMe = async (req, res) => {
+  try {
+    res.json(req.authUser);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};

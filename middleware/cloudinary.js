@@ -12,7 +12,8 @@ cloudinary.config({
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
-    folder: "praticaW2D4",
+    folder: "Strive Blog",
+    allowed_formats: ["jpg", "png", "svg", "webp"],
   },
 });
 

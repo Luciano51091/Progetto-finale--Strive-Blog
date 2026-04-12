@@ -6,6 +6,8 @@ import blogPostRouter from "./routes/blogPosts.js";
 import cors from "cors";
 import commentsRouter from "./routes/comments.js";
 import authRouter from "./routes/auth.js";
+import passport from "passport";
+import "./config/passport.js";
 
 dotenv.config();
 connect();
@@ -18,9 +20,9 @@ app.get("/", (req, res) => {
 });
 app.use("/auth", authRouter);
 app.use("/authors", authorRouter);
-
 app.use("/blogPosts", blogPostRouter);
 app.use("/", commentsRouter);
+app.use(passport.initialize());
 
 app.listen(process.env.PORT, () => {
   console.log("il server è attivo sulla porta: " + process.env.PORT);

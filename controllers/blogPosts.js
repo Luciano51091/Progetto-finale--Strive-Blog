@@ -38,19 +38,18 @@ export async function findById(req, res) {
 
 export async function create(req, res) {
   try {
-    const { category, title, cover, readTime, author, content } = req.body;
+    const postData = req.body;
+    if (req.file) {
+      postData.cover = req.file.path;
+    }
     const blogPost = new BlogPost({
-      category,
-      title,
-      cover,
-      readTime,
-      author,
-      content,
+      ...postData,
+      author: req.authUser.email,
     });
     const newBlogPost = await blogPost.save();
     res.status(201).json(newBlogPost);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(400).json({ message: error.message });
   }
 }
 

@@ -37,6 +37,11 @@ export async function findById(req, res) {
 export async function create(req, res) {
   try {
     const { name, surname, email, birthDate, avatar, password } = req.body;
+    const existingAuthor = await Author.findOne({ email });
+    if (existingAuthor) {
+      return res.status(400).json({ message: "L'email è già registrata" });
+    }
+
     const author = new Author({
       name,
       surname,
@@ -45,8 +50,12 @@ export async function create(req, res) {
       avatar,
       password,
     });
+
     const newAuthor = await author.save();
-    res.status(201).json(newAuthor);
+    const authorObject = newAuthor.toObject();
+    delete authorObject.password;
+
+    res.status(201).json(authorObject);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
