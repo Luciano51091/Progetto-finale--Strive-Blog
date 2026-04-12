@@ -58,13 +58,26 @@ export async function create(req, res) {
 export async function elimina(req, res) {
   try {
     const { id } = req.params;
+    // 1. Validazione dell'ID
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ message: "Invalid Blog Post Id" });
     }
-    const deletedBlogPost = await BlogPost.findByIdAndDelete(id);
-    if (!deletedBlogPost) {
+    // 2. Cerchiamo il post
+    const blogPost = await BlogPost.findById(id);
+    if (!blogPost) {
       return res.status(404).json({ message: " Blog Post Not Found" });
     }
+
+    // 3. CONTROLLO DI SICUREZZA
+
+    if (blogPost.author !== req.authUser.email) {
+      return res.status(403).json({
+        message: "Forbidden: Non sei autorizzato a eliminare questo post.",
+      });
+    }
+
+    await BlogPost.findByIdAndDelete(id);
+
     res.status(200).json({ message: " Blog Post Deleted" });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -79,18 +92,23 @@ export async function update(req, res) {
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ message: "Invalid Blog Post Id" });
     }
-    const { category, title, cover, readTime, author, content } = req.body;
-    const updateBlogPost = await BlogPost.findByIdAndUpdate(
-      id,
-      { category, title, cover, readTime, author, content },
-      {
-        returnDocument: "after",
-      },
-    );
-    if (!updateBlogPost) {
+
+    const blogPost = await BlogPost.findById(id);
+    if (!blogPost) {
+      return res.status(404).json({ message: "Blog Post Not Found" });
+    }
+
+    if (blogPost.author !== req.authUser.email) {
+      return res.status(403).json({ message: "Non sei autorizzato a modificare questo post" });
+    }
+
+    const { category, title, cover, readTime, content } = req.body;
+    const updatedBlogPost = await BlogPost.findByIdAndUpdate(id, { category, title, cover, readTime, content }, { new: true });
+    if (!updatedBlogPost) {
       return res.status(404).json({ message: " Blog Post Not Found" });
     }
-    res.status(200).json(updateBlogPost);
+
+    res.status(200).json(updatedBlogPost);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
