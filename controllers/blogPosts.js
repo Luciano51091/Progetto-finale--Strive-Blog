@@ -4,13 +4,27 @@ import BlogPost from "../models/BlogPost.js";
 // 1. LISTA DEI POST
 export async function findAll(req, res) {
   try {
-    const { page, limit } = req.query;
-    const blogPostsQuery = BlogPost.find();
-    if (page && limit) {
-      blogPostsQuery.skip((page - 1) * limit).limit(limit);
-    }
-    const blogPosts = await blogPostsQuery;
-    res.status(200).json(blogPosts);
+    // 1. Convertiamo sempre i parametri in numeri interi (base 10)
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 6;
+
+    // 2. Calcoliamo quanti post saltare
+    // Esempio: Pagina 2, Limite 6 -> (2-1) * 6 = Salta i primi 6
+    const skip = (page - 1) * limit;
+
+    // 3. Contiamo il totale REALE dei post per la paginazione
+    const total = await BlogPost.countDocuments();
+
+    // 4. Eseguiamo la query con skip, limit e SORT
+    const blogPosts = await BlogPost.find().sort({ _id: -1 }).skip(skip).limit(limit);
+
+    // 5. Risposta strutturata
+    res.status(200).json({
+      posts: blogPosts,
+      currentPage: page,
+      totalPages: Math.ceil(total / limit),
+      totalPosts: total,
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -131,6 +145,86 @@ export async function uploadCover(req, res) {
       return res.status(404).json({ message: " Blog Post Not Found" });
     }
     res.status(200).json(blogPost);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+}
+
+// AGGIUNTA DEI COMMENTI AL POST
+
+export async function addComment(req, res) {
+  try {
+    const { id } = req.params;
+    const { text } = req.body;
+
+    const updatedBlogPost = await BlogPost.findByIdAndUpdate(
+      id,
+      {
+        $push: {
+          comments: {
+            text,
+            author: req.authUser.email,
+          },
+        },
+      },
+      { new: true, runValidators: true },
+    );
+
+    if (!updatedBlogPost) {
+      return res.status(404).json({ message: "Blog Post Not Found" });
+    }
+
+    res.status(201).json(updatedBlogPost.comments);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+}
+
+// MODIFICA DEI COMMENTI DA PARTE DELL'UTENTE LOGGATO
+
+export async function updateComment(req, res) {
+  try {
+    const { postId, commentId } = req.params;
+    const { text } = req.body;
+
+    const post = await BlogPost.findById(postId);
+    if (!post) return res.status(404).json({ message: "Post non trovato" });
+
+    const comment = post.comments.id(commentId);
+    if (!comment) return res.status(404).json({ message: "Commento non trovato" });
+
+    if (comment.author !== req.authUser.email) {
+      return res.status(403).json({ message: "Non autorizzato" });
+    }
+
+    comment.text = text;
+    await post.save();
+
+    res.json(post.comments);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+}
+
+//CANCELLAZIONE COMMENTO DA PARTE DELL'UTENTE LOGGATO
+export async function deleteComment(req, res) {
+  try {
+    const { postId, commentId } = req.params;
+
+    const post = await BlogPost.findById(postId);
+    if (!post) return res.status(404).json({ message: "Post non trovato" });
+
+    const comment = post.comments.id(commentId);
+    if (!comment) return res.status(404).json({ message: "Commento non trovato" });
+
+    if (comment.author !== req.authUser.email) {
+      return res.status(403).json({ message: "Non autorizzato a eliminare questo commento" });
+    }
+
+    comment.deleteOne();
+    await post.save();
+
+    res.status(200).json(post.comments);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

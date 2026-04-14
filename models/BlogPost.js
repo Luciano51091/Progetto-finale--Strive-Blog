@@ -15,18 +15,21 @@ const CommentSchema = new mongoose.Schema(
   },
 );
 
-const BlogPostSchema = new mongoose.Schema({
-  category: String,
-  title: String,
-  cover: String,
-  readTime: {
-    value: Number,
-    unit: String,
+const BlogPostSchema = new mongoose.Schema(
+  {
+    category: String,
+    title: String,
+    cover: String,
+    readTime: {
+      value: Number,
+      unit: String,
+    },
+    author: String,
+    content: String,
+    comments: [CommentSchema],
   },
-  author: String,
-  content: String,
-  comments: [CommentSchema],
-});
+  { timestamps: true },
+);
 
 const BlogPost = mongoose.model("Blogpost", BlogPostSchema);
 
