@@ -229,3 +229,12 @@ export async function deleteComment(req, res) {
     res.status(500).json({ message: error.message });
   }
 }
+
+export async function findMyPosts(req, res) {
+  try {
+    const myPosts = await BlogPost.find({ author: req.authUser.email });
+    res.status(200).json(myPosts);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+}
