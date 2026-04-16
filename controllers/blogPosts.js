@@ -4,21 +4,18 @@ import BlogPost from "../models/BlogPost.js";
 // 1. LISTA DEI POST
 export async function findAll(req, res) {
   try {
-    // 1. Convertiamo sempre i parametri in numeri interi (base 10)
     const page = parseInt(req.query.page, 10) || 1;
     const limit = parseInt(req.query.limit, 10) || 6;
+    const { title } = req.query;
 
-    // 2. Calcoliamo quanti post saltare
-    // Esempio: Pagina 2, Limite 6 -> (2-1) * 6 = Salta i primi 6
     const skip = (page - 1) * limit;
 
-    // 3. Contiamo il totale REALE dei post per la paginazione
-    const total = await BlogPost.countDocuments();
+    const filter = title ? { title: { $regex: title, $options: "i" } } : {};
 
-    // 4. Eseguiamo la query con skip, limit e SORT
-    const blogPosts = await BlogPost.find().sort({ _id: -1 }).skip(skip).limit(limit);
+    const total = await BlogPost.countDocuments(filter);
 
-    // 5. Risposta strutturata
+    const blogPosts = await BlogPost.find(filter).sort({ _id: -1 }).skip(skip).limit(limit);
+
     res.status(200).json({
       posts: blogPosts,
       currentPage: page,
@@ -128,23 +125,30 @@ export async function update(req, res) {
   }
 }
 
+// 6. MODIFICA IMMAGINE POST
 export async function uploadCover(req, res) {
   try {
     const { id } = req.params;
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({
-        message: "Invalid blogPost Id",
-      });
+      return res.status(400).json({ message: "Invalid blogPost Id" });
     }
     if (!req.file) {
       return res.status(400).json({ message: "Invalid file" });
     }
-    const blogPost = await BlogPost.findByIdAndUpdate(id, { cover: req.file.path }, { returnDocument: "after" });
 
+    const blogPost = await BlogPost.findById(id);
     if (!blogPost) {
-      return res.status(404).json({ message: " Blog Post Not Found" });
+      return res.status(404).json({ message: "Blog Post Not Found" });
     }
-    res.status(200).json(blogPost);
+
+    if (blogPost.author !== req.authUser.email) {
+      return res.status(403).json({ message: "Non sei autorizzato a cambiare la cover di questo post" });
+    }
+
+    blogPost.cover = req.file.path;
+    const updatedPost = await blogPost.save();
+
+    res.status(200).json(updatedPost);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

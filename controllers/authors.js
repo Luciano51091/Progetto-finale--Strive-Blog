@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import Author from "../models/Author.js";
+import BlogPost from "../models/BlogPost.js";
 
 export async function findAll(req, res) {
   try {
@@ -42,13 +43,18 @@ export async function create(req, res) {
       return res.status(400).json({ message: "L'email è già registrata" });
     }
 
+    let avatarUrl = "";
+    if (req.file) {
+      avatarUrl = req.file.path;
+    }
+
     const author = new Author({
       name,
       surname,
       email,
       birthDate,
-      avatar,
       password,
+      avatar: avatarUrl,
     });
 
     const newAuthor = await author.save();
@@ -64,18 +70,29 @@ export async function create(req, res) {
 export async function elimina(req, res) {
   try {
     const { id } = req.params;
+
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({
-        message: "Invalid Author Id",
-      });
+      return res.status(400).json({ message: "Invalid Author Id" });
     }
-    const deletedAuthor = await Author.findByIdAndDelete(id);
-    if (!deletedAuthor) {
-      return res.status(404).json({
-        message: "Author Not Found",
-      });
+
+    if (!req.authUser) {
+      return res.status(401).json({ message: "Effettua il login per procedere" });
     }
-    res.status(200).json({ message: "Author Deleted" });
+
+    if (req.authUser._id.toString() !== id) {
+      return res.status(403).json({ message: "Non sei autorizzato a eliminare questo profilo" });
+    }
+
+    const authorToDelete = await Author.findById(id);
+    if (!authorToDelete) {
+      return res.status(404).json({ message: "Autore non trovato." });
+    }
+
+    await BlogPost.deleteMany({ author: authorToDelete.email });
+
+    await Author.findByIdAndDelete(id);
+
+    res.status(200).json({ message: "Account e tutti i post associati eliminati con successo." });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
