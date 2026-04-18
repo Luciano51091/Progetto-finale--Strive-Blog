@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import Author from "../models/Author.js";
 import BlogPost from "../models/BlogPost.js";
+import { sendEmail } from "../utils/mail.js";
 
 export async function findAll(req, res) {
   try {
@@ -37,7 +38,8 @@ export async function findById(req, res) {
 
 export async function create(req, res) {
   try {
-    const { name, surname, email, birthDate, avatar, password } = req.body;
+    const { name, surname, email, birthDate, password } = req.body;
+
     const existingAuthor = await Author.findOne({ email });
     if (existingAuthor) {
       return res.status(400).json({ message: "L'email è già registrata" });
@@ -58,6 +60,19 @@ export async function create(req, res) {
     });
 
     const newAuthor = await author.save();
+
+    try {
+      await sendEmail(
+        newAuthor.email,
+        "Benvenuto su Strive Blog!",
+        `Ciao ${newAuthor.name}, grazie per esserti registrato!`,
+        `<h1>Benvenuto ${newAuthor.name}!</h1><p>Siamo felici di averti nella nostra community di autori.</p>`,
+      );
+      console.log("Email di benvenuto inviata correttamente a:", newAuthor.email);
+    } catch (mailError) {
+      console.error("Errore nell'invio della mail di benvenuto:", mailError);
+    }
+
     const authorObject = newAuthor.toObject();
     delete authorObject.password;
 
@@ -66,7 +81,6 @@ export async function create(req, res) {
     res.status(500).json({ message: error.message });
   }
 }
-
 export async function elimina(req, res) {
   try {
     const { id } = req.params;
@@ -88,7 +102,7 @@ export async function elimina(req, res) {
       return res.status(404).json({ message: "Autore non trovato." });
     }
 
-    await BlogPost.deleteMany({ author: authorToDelete.email });
+    await BlogPost.deleteMany({ author: authorToDelete._id });
 
     await Author.findByIdAndDelete(id);
 

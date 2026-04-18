@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import BlogPost from "../models/BlogPost.js";
+import { sendEmail } from "../utils/mail.js";
 
 // 1. LISTA DEI POST
 export async function findAll(req, res) {
@@ -7,14 +8,12 @@ export async function findAll(req, res) {
     const page = parseInt(req.query.page, 10) || 1;
     const limit = parseInt(req.query.limit, 10) || 6;
     const { title } = req.query;
-
     const skip = (page - 1) * limit;
-
     const filter = title ? { title: { $regex: title, $options: "i" } } : {};
 
     const total = await BlogPost.countDocuments(filter);
 
-    const blogPosts = await BlogPost.find(filter).sort({ _id: -1 }).skip(skip).limit(limit);
+    const blogPosts = await BlogPost.find(filter).populate("author").sort({ _id: -1 }).skip(skip).limit(limit);
 
     res.status(200).json({
       posts: blogPosts,
@@ -50,46 +49,63 @@ export async function findById(req, res) {
 export async function create(req, res) {
   try {
     const postData = req.body;
+
+    const author = req.authUser;
+
+    if (!author) {
+      return res.status(401).json({ message: "Autore non identificato" });
+    }
+
     if (req.file) {
       postData.cover = req.file.path;
     }
+
     const blogPost = new BlogPost({
       ...postData,
-      author: req.authUser.email,
+      author: author._id,
     });
+
     const newBlogPost = await blogPost.save();
+
+    try {
+      await sendEmail(
+        author.email,
+        "Post Pubblicato con Successo!",
+        `Ciao ${author.name}, il tuo articolo "${newBlogPost.title}" è ora online.`,
+        `<strong>Congratulazioni!</strong><br>Il tuo post è stato pubblicato correttamente.`,
+      );
+    } catch (mailError) {
+      console.error("Errore SendGrid (Post):", mailError.response?.body || mailError.message);
+    }
+
     res.status(201).json(newBlogPost);
   } catch (error) {
+    console.error("Errore validazione post:", error.message);
     res.status(400).json({ message: error.message });
   }
 }
-
 // 4. ELIMINAZIONE DI UN POST
 
 export async function elimina(req, res) {
   try {
     const { id } = req.params;
-    // 1. Validazione dell'ID
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ message: "Invalid Blog Post Id" });
     }
-    // 2. Cerchiamo il post
+
     const blogPost = await BlogPost.findById(id);
     if (!blogPost) {
-      return res.status(404).json({ message: " Blog Post Not Found" });
+      return res.status(404).json({ message: "Blog Post Not Found" });
     }
 
-    // 3. CONTROLLO DI SICUREZZA
-
-    if (blogPost.author !== req.authUser.email) {
+    if (blogPost.author.toString() !== req.authUser._id.toString()) {
       return res.status(403).json({
         message: "Forbidden: Non sei autorizzato a eliminare questo post.",
       });
     }
 
     await BlogPost.findByIdAndDelete(id);
-
-    res.status(200).json({ message: " Blog Post Deleted" });
+    res.status(200).json({ message: "Blog Post Deleted" });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -109,22 +125,18 @@ export async function update(req, res) {
       return res.status(404).json({ message: "Blog Post Not Found" });
     }
 
-    if (blogPost.author !== req.authUser.email) {
+    if (blogPost.author.toString() !== req.authUser._id.toString()) {
       return res.status(403).json({ message: "Non sei autorizzato a modificare questo post" });
     }
 
     const { category, title, cover, readTime, content } = req.body;
     const updatedBlogPost = await BlogPost.findByIdAndUpdate(id, { category, title, cover, readTime, content }, { new: true });
-    if (!updatedBlogPost) {
-      return res.status(404).json({ message: " Blog Post Not Found" });
-    }
 
     res.status(200).json(updatedBlogPost);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 }
-
 // 6. MODIFICA IMMAGINE POST
 export async function uploadCover(req, res) {
   try {
@@ -132,17 +144,14 @@ export async function uploadCover(req, res) {
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ message: "Invalid blogPost Id" });
     }
-    if (!req.file) {
-      return res.status(400).json({ message: "Invalid file" });
-    }
 
     const blogPost = await BlogPost.findById(id);
     if (!blogPost) {
       return res.status(404).json({ message: "Blog Post Not Found" });
     }
 
-    if (blogPost.author !== req.authUser.email) {
-      return res.status(403).json({ message: "Non sei autorizzato a cambiare la cover di questo post" });
+    if (blogPost.author.toString() !== req.authUser._id.toString()) {
+      return res.status(403).json({ message: "Non sei autorizzato a cambiare la cover" });
     }
 
     blogPost.cover = req.file.path;
@@ -153,7 +162,6 @@ export async function uploadCover(req, res) {
     res.status(500).json({ message: error.message });
   }
 }
-
 // AGGIUNTA DEI COMMENTI AL POST
 
 export async function addComment(req, res) {
@@ -236,7 +244,7 @@ export async function deleteComment(req, res) {
 
 export async function findMyPosts(req, res) {
   try {
-    const myPosts = await BlogPost.find({ author: req.authUser.email });
+    const myPosts = await BlogPost.find({ author: req.authUser._id });
     res.status(200).json(myPosts);
   } catch (error) {
     res.status(500).json({ message: error.message });
