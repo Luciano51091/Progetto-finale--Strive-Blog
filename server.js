@@ -24,6 +24,12 @@ app.use("/blogPosts", blogPostRouter);
 app.use("/", commentsRouter);
 app.use(passport.initialize());
 
-app.listen(process.env.PORT, () => {
-  console.log("il server è attivo sulla porta: " + process.env.PORT);
+const PORT = process.env.PORT || 3001; // Usa la porta di Render o la 3001 come backup
+
+app.listen(PORT, () => {
+  console.log(`Server attivo sulla porta: ${PORT}`);
+  console.table({
+    "Endpoint principale": `http://localhost:${PORT}`,
+    Status: "Running",
+  });
 });
