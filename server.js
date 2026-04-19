@@ -14,6 +14,7 @@ connect();
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use(passport.initialize());
 
 app.get("/", (req, res) => {
   res.status(200).json({ message: "Ciao Mondo" });
@@ -22,9 +23,8 @@ app.use("/auth", authRouter);
 app.use("/authors", authorRouter);
 app.use("/blogPosts", blogPostRouter);
 app.use("/", commentsRouter);
-app.use(passport.initialize());
 
-const PORT = process.env.PORT || 3001; // Usa la porta di Render o la 3001 come backup
+const PORT = process.env.PORT || 3001;
 
 app.listen(PORT, () => {
   console.log(`Server attivo sulla porta: ${PORT}`);
