@@ -12,9 +12,25 @@ import "./config/passport.js";
 dotenv.config();
 connect();
 const app = express();
-app.use(cors());
+
 app.use(express.json());
 app.use(passport.initialize());
+
+const whitelist = [process.env.FRONTEND_HOST];
+const corsOptions = {
+  origin: function (origin, callback) {
+    if (!origin) {
+      return callback(null, true);
+    }
+    if (whitelist.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
+};
+
+app.use(cors(corsOptions));
 
 app.get("/", (req, res) => {
   res.status(200).json({ message: "Ciao Mondo" });
@@ -29,7 +45,7 @@ const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`Server attivo sulla porta: ${PORT}`);
   console.table({
-    "Endpoint principale": `http://localhost:${PORT}`,
+    "Endpoint principale": `${process.env.BACKEND_HOST}`,
     Status: "Running",
   });
 });

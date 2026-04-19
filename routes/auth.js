@@ -10,7 +10,7 @@ authRouter.get("/me", authentication, getMe);
 authRouter.get("/google", passport.authenticate("google", { scope: ["profile", "email"] }));
 authRouter.get("/google/callback", passport.authenticate("google", { session: false }), (req, res) => {
   const { token } = req.user;
-  res.redirect(`http://localhost:5173/login?token=${token}`);
+  res.redirect(`${process.env.FRONTEND_HOST}/login?token=${token}`);
 });
 
 export default authRouter;
